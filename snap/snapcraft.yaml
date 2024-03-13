@@ -27,7 +27,7 @@ apps:
   btop-desktop:
     command: usr/local/bin/btop
     extensions:
-      - gnome-3-38 
+      - gnome
     environment:
       LC_ALL: C.UTF-8
       LANG: C.UTF-8
