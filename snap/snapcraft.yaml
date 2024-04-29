@@ -1,14 +1,28 @@
 name: btop-desktop
-adopt-info: btop-desktop
-summary: Resource monitor that shows usage and stats - Desktop Version
+adopt-info: btop
+summary: BTop Desktop
 description: |
-  Resource monitor that shows usage and stats for processor, memory, disks, network and processes.
-  C++ version and continuation of bashtop and bpytop. DESKTOP VERSION.
-  
-  To run: Just click on the btop icon and enjoy.
-  
+ Modern and colorful command line resource monitor that shows usage and stats
+ btop is a modern and colorful command line resource monitor that shows
+ usage and stats for processor, memory, disks, network and processes.
+ btop features:
+  - Easy to use, with a game inspired menu system.
+  - Full mouse support, all buttons with a highlighted key is clickable
+  and mouse scroll works in process list and menu boxes.
+  - Fast and responsive UI with UP, DOWN keys process selection.
+  - Function for showing detailed stats for selected process.
+  - Ability to filter processes.
+  - Easy switching between sorting options.
+  - Tree view of processes.
+  - Send any signal to selected process.
+  - UI menu for changing all config file options.
+  - Auto scaling graph for network usage.
+  - Shows IO activity and speeds for disks
+  - Battery meter
+  - Selectable symbols for the graphs
+  - Custom presets
+  - And more...
 license: Apache-2.0
-
 base: core22
 grade: stable
 confinement: strict
@@ -17,17 +31,12 @@ compression: lzo
 architectures:
   - build-on: amd64
   - build-on: arm64
-  - build-on: armhf
-
-package-repositories:
- - type: apt
-   ppa: ubuntu-toolchain-r/test
 
 apps:
   btop-desktop:
-    command: usr/local/bin/btop
-    extensions:
-      - gnome
+    command: usr/bin/btop-desktop
+    extensions: [ gnome ]
+    desktop: usr/share/applications/btop-desktop.desktop
     environment:
       LC_ALL: C.UTF-8
       LANG: C.UTF-8
@@ -38,32 +47,67 @@ apps:
       - hardware-observe
       - network
       - network-observe
-      - home
       - removable-media
-      - desktop
-      - desktop-legacy
-      - x11
-      - wayland
-      - unity7
 
 parts:
-  btop-desktop:
+  btop:
     source: https://github.com/aristocratos/btop
     source-type: git
     plugin: make
     make-parameters:
-      - PREFIX=/usr/local
+      - CXX=g++-11
+      - PREFIX=/usr
       - STATIC=true
       - ADDFLAGS="-D SNAPPED"
-      
-    build-packages:
-      - coreutils
-      - sed
-      - git
-      - build-essential
-      - gcc-11
-      - g++-11
-      
     override-pull: |
-      snapcraftctl pull
-      snapcraftctl set-version "$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"
+      craftctl default
+      craftctl set version="$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"
+
+  vte:
+    source: https://gitlab.gnome.org/GNOME/vte.git
+    source-tag: '0.70.5'
+    source-depth: 1
+    plugin: meson
+    meson-parameters:
+      - --prefix=/usr
+      - -Doptimization=3
+      - -Dgir=false
+      - -Da11y=false
+      - -Dicu=false
+      - -Ddocs=false
+      - -Dglade=false
+      - -Dgnutls=true
+      - -Dfribidi=false
+      - -Dgtk3=false
+      - -Dgtk4=true
+      - -D_systemd=false
+      - -Dvapi=false
+    override-pull: |
+      craftctl default
+      sed -i 's#error=format#format#' meson.build
+    prime:
+      - usr/lib/*/libvte*gtk4.so.*
+
+  btop-desktop:
+    after: [ vte ]
+    plugin: meson
+    source: https://github.com/kenvandine/btop-desktop.git
+    source-type: git
+    meson-parameters:
+      - --prefix=/usr
+    prime:
+      - usr/bin/btop-desktop
+      - usr/share/applications/btop-desktop.desktop
+      - usr/share/icons
+
+  # Find files provided by the base and platform snap and ensure they aren't
+  # duplicated in this snap
+  cleanup:
+    after: [btop, btop-desktop]
+    plugin: nil
+    build-snaps: [core22, gtk-common-themes, gnome-42-2204]
+    override-prime: |
+      set -eux
+      for snap in "core22" "gtk-common-themes" "gnome-42-2204"; do
+        cd "/snap/$snap/current" && find . -type f,l -name *.so.* -exec rm -f "$CRAFT_PRIME/{}" \;
+      done
