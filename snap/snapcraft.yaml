@@ -23,14 +23,22 @@ description: |
   - Custom presets
   - And more...
 license: Apache-2.0
-base: core22
+base: core24
 grade: stable
 confinement: strict
 compression: lzo
 
-architectures:
-  - build-on: amd64
-  - build-on: arm64
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+  arm64:
+    build-on: [arm64]
+    build-for: [arm64]
+
+layout:
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libproxy/libpxbackend-1.0.so:
+    symlink: $SNAP/gnome-platform/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libproxy/libpxbackend-1.0.so
 
 apps:
   btop-desktop:
@@ -55,7 +63,7 @@ parts:
     source-type: git
     plugin: make
     make-parameters:
-      - CXX=g++-11
+      - CXX=g++-13
       - PREFIX=/usr
       - STATIC=true
       - ADDFLAGS="-D SNAPPED"
@@ -105,9 +113,9 @@ parts:
   cleanup:
     after: [btop, btop-desktop]
     plugin: nil
-    build-snaps: [core22, gtk-common-themes, gnome-42-2204]
+    build-snaps: [core24, gtk-common-themes, gnome-46-2404]
     override-prime: |
       set -eux
-      for snap in "core22" "gtk-common-themes" "gnome-42-2204"; do
+      for snap in "core24" "gtk-common-themes" "gnome-46-2404"; do
         cd "/snap/$snap/current" && find . -type f,l -name *.so.* -exec rm -f "$CRAFT_PRIME/{}" \;
       done
