@@ -67,13 +67,18 @@ parts:
     source-type: git
     plugin: make
     make-parameters:
-      - CXX=g++-13
-      - PREFIX=/usr
-      - STATIC=true
-      - ADDFLAGS="-D SNAPPED"
-    override-pull: |
-      craftctl default
-      craftctl set version="$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"
+      - CC=gcc-14
+      - CXX=g++-14
+      - PREFIX=/usr/local
+      - STATIC=true #required
+      - ADDFLAGS="-D SNAPPED" #required
+    build-packages:
+      - coreutils
+      - sed
+      - git
+      - build-essential
+      - gcc-14
+      - g++-14
 
   vte:
     source: https://gitlab.gnome.org/GNOME/vte.git
