@@ -79,6 +79,10 @@ parts:
       - build-essential
       - gcc-14
       - g++-14
+      
+    override-pull: |
+      craftctl default
+      craftctl set version="$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"      
 
   vte:
     source: https://gitlab.gnome.org/GNOME/vte.git
