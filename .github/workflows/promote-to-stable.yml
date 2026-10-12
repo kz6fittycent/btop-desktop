@@ -1,0 +1,22 @@
+name: 🚀 Promote snap to stable
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  promote:
+    name: Promote snap
+    runs-on: ubuntu-24.04
+    if: |
+      startsWith(github.event.comment.body, '/promote') &&
+      contains(github.event.issue.labels.*.name, 'testing')
+    steps:
+      - uses: snapcrafters/ci/promote-to-stable@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          store-token: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}

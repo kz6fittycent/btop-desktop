@@ -14,6 +14,10 @@ concurrency:
   group: publish-snap
   cancel-in-progress: false
 
+env:
+  CHANNEL: latest/candidate
+  PROMOTION_CHANNEL: latest/stable
+
 jobs:
   build-and-publish:
     name: Build and publish (${{ matrix.arch }})
@@ -38,9 +42,88 @@ jobs:
           name: btop-snap-${{ matrix.arch }}
           path: ${{ steps.build.outputs.snap }}
 
-      - uses: snapcore/action-publish@v1
+      - name: Upload to ${{ env.CHANNEL }}
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          snap_file: ${{ steps.build.outputs.snap }}
+        run: |
+          sudo snap install snapcraft --classic
+          snapcraft upload "$snap_file" --release="$CHANNEL" 2>&1 | tee upload.log
+          revision="$(grep -Po 'Revision \K[0-9]+' upload.log)"
+          version="$(basename "$snap_file" | cut -d_ -f2)"
+          {
+            echo "architecture: ${{ matrix.arch }}"
+            echo "revision: ${revision}"
+            echo "version: ${version}"
+          } > "manifest-${{ matrix.arch }}.yaml"
+
+      - uses: actions/upload-artifact@v4
         with:
-          snap: ${{ steps.build.outputs.snap }}
-          release: stable
+          name: manifest-${{ matrix.arch }}
+          path: manifest-${{ matrix.arch }}.yaml
+
+  call-for-testing:
+    name: Call for testing
+    needs: build-and-publish
+    runs-on: ubuntu-24.04
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: manifest-*
+          merge-multiple: true
+
+      - name: Open call for testing issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          snap_name=btop-desktop
+          rows=""
+          revisions=()
+          for file in manifest-*.yaml; do
+            arch="$(yq -r '.architecture' "$file")"
+            rev="$(yq -r '.revision' "$file")"
+            version="$(yq -r '.version' "$file")"
+            rows+="| ${arch} | ${rev} |"$'\n'
+            revisions+=("$rev")
+          done
+          printf -v joined '%s,' "${revisions[@]}"
+          joined="${joined%,}"
+
+          cat > body.md <<EOF
+          A new version (${version}) of \`${snap_name}\` was just pushed to the \`${CHANNEL}\` channel [in the snap store](https://snapcraft.io/${snap_name}).
+
+          | CPU Architecture | Revision |
+          |---|---|
+          ${rows}
+          ## How to test it
+
+          1. Close btop-desktop if it is running.
+          2. Switch to this build:
+
+             \`\`\`
+             snap refresh ${snap_name} --channel ${CHANNEL}
+             \`\`\`
+
+          3. Launch btop-desktop and check that btop starts inside the window (not a black screen).
+          4. Comment below whether it works, and include the output of:
+
+             \`\`\`
+             snap version; lscpu | grep Architecture; snap info ${snap_name} | grep installed
+             \`\`\`
+
+          ## How to release it
+
+          Maintainers can promote these revisions to \`${PROMOTION_CHANNEL}\` and close this issue by commenting:
+
+          \`\`\`
+          /promote ${joined} ${PROMOTION_CHANNEL} done
+          \`\`\`
+          EOF
+
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Call for testing \`${snap_name}\` ${version} on \`${CHANNEL}\`" \
+            --label testing \
+            --body-file body.md
