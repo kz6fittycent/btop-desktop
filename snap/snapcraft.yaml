@@ -78,7 +78,12 @@ parts:
       
     override-pull: |
       craftctl default
-      craftctl set version="$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"      
+      craftctl set version="$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"
+    # Only the binary and themes; btop-desktop provides its own icon and
+    # desktop file, and btop's btop.svg would conflict with it.
+    stage:
+      - usr/bin/btop
+      - usr/share/btop
 
   vte:
     source: https://gitlab.gnome.org/GNOME/vte.git
