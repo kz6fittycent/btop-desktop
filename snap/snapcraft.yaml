@@ -65,7 +65,7 @@ parts:
     make-parameters:
       - CC=gcc-14
       - CXX=g++-14
-      - PREFIX=/usr/local
+      - PREFIX=/usr #required: btop-desktop spawns btop via PATH, which includes $SNAP/usr/bin but not $SNAP/usr/local/bin
       - STATIC=true #required
       - ADDFLAGS="-D SNAPPED" #required
     build-packages:
