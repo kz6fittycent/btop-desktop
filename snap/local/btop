@@ -1,0 +1,4 @@
+#!/bin/sh
+# btop-desktop starts "btop" from PATH; route it through btop-session so
+# closing the window still saves btop's settings.
+exec "$SNAP/bin/btop-session" "$SNAP/usr/bin/btop.bin" "$@"

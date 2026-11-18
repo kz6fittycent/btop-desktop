@@ -81,8 +81,11 @@ parts:
       craftctl set version="$(git describe --tags | sed 's/^v//' | cut -d "-" -f1)"
     # Only the binary and themes; btop-desktop provides its own icon and
     # desktop file, and btop's btop.svg would conflict with it.
+    # The real binary becomes btop.bin; usr/bin/btop is the btop-session shim.
+    organize:
+      usr/bin/btop: usr/bin/btop.bin
     stage:
-      - usr/bin/btop
+      - usr/bin/btop.bin
       - usr/share/btop
 
   vte:
@@ -124,6 +127,15 @@ parts:
       - usr/bin/btop-desktop
       - usr/share/applications/btop-desktop.desktop
       - usr/share/icons
+
+  # Saves btop's settings when the window is closed (see the scripts).
+  btop-session:
+    plugin: dump
+    source: snap/local
+    organize:
+      btop-session: bin/btop-session
+      btop: usr/bin/btop
+    stage: [bin/btop-session, usr/bin/btop]
 
   # Find files provided by the base and platform snap and ensure they aren't
   # duplicated in this snap
