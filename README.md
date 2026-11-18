@@ -21,6 +21,7 @@ sudo snap connect btop-desktop:removable-media
 ## Notes
 
 - Config lives in `~/snap/btop-desktop/common/.config/btop` (shared by every revision, so a refresh never loses it).
+- GPU stats on amd64: NVIDIA works (needs the driver installed on the host), AMD should work too. Intel iGPU stats need root, so they don't show in the snap.
 - Quit with `q` or just close the window. Theme and settings are saved either way (`snap/local/btop-session` handles the close).
 - Just want btop in a terminal? See [btop](https://github.com/kz6fittycent/btop).
 
